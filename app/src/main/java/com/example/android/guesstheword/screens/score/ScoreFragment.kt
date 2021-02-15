@@ -57,13 +57,11 @@ class ScoreFragment : Fragment() {
         // note. view model declared into xml directly
         binding.scoreViewModel = viewModel
 
-        // note. final score observer apply using live data
-        viewModel.finalScore.observe(this, Observer { finalScore ->
-            binding.scoreText.text = finalScore.toString()
-        })
+        // note. connect data binding with LiveData
+        binding.lifecycleOwner = this
 
         // note. play again button click listener observer apply
-        viewModel.eventPlayAgain.observe(this, Observer { clickedPlayAgain ->
+        viewModel.eventPlayAgain.observe(viewLifecycleOwner, Observer { clickedPlayAgain ->
             if (clickedPlayAgain) {
                 findNavController().navigate(ScoreFragmentDirections.actionRestart())
             }

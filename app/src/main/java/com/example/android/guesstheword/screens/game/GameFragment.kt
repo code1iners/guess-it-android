@@ -60,22 +60,17 @@ class GameFragment : Fragment() {
         // note. view model declared into xml directly
         binding.gameViewModel = viewModel
 
-        viewModel.score.observe(this, Observer { newScore ->
-            binding.scoreText.text = newScore.toString()
-        })
+        // note. connect data binding with LiveData
+        binding.lifecycleOwner = this
 
-        viewModel.word.observe(this, Observer { newWord ->
-            binding.wordText.text = newWord
-        })
-
-        viewModel.eventGameFinish.observe(this, Observer { hasFinished ->
+        viewModel.eventGameFinish.observe(viewLifecycleOwner, Observer { hasFinished ->
             if (hasFinished) {
                 gameFinished()
                 viewModel.onGameFinishComplete()
             }
         })
 
-        viewModel.remainingTime.observe(this, Observer { remainingTime ->
+        viewModel.remainingTime.observe(viewLifecycleOwner, Observer { remainingTime ->
             binding.timerText.text = DateUtils.formatElapsedTime(remainingTime)
         })
 
