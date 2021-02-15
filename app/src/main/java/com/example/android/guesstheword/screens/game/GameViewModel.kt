@@ -8,10 +8,29 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Transformations
 import androidx.lifecycle.ViewModel
 
+private val CORRECT_BUZZ_PATTERN = longArrayOf(100, 100, 100, 100, 100, 100)
+private val PANIC_BUZZ_PATTERN = longArrayOf(0, 200)
+private val GAME_OVER_BUZZ_PATTERN = longArrayOf(0, 2000)
+private val NO_BUZZ_PATTERN = longArrayOf(0)
+
 class GameViewModel: ViewModel() {
+
+    enum class BuzzType(val pattern: LongArray) {
+        CORRECT(CORRECT_BUZZ_PATTERN),
+        GAME_OVER(GAME_OVER_BUZZ_PATTERN),
+        COUNTDOWN_PANIC(PANIC_BUZZ_PATTERN),
+        NO_BUZZ(NO_BUZZ_PATTERN)
+    }
+
+    enum class Direction {
+        NORTH, SOUTH, WEST, EAST
+    }
 
     companion object {
         // These represent different important times in the game, such as game length.
+
+        // This is the time when the phone will start buzzing each second
+        private const val COUNTDOWN_PANIC_SECONDS = 10L
 
         // This is when the game is over
         private const val DONE = 0L
@@ -20,30 +39,39 @@ class GameViewModel: ViewModel() {
         private const val ONE_SECOND = 1000L
 
         // This is the total time of the game
-        private const val COUNTDOWN_TIME = 10000L
+        private const val COUNTDOWN_TIME = 30000L
     }
 
+    private val _eventBuzz = MutableLiveData<BuzzType>()
+    val eventBuzz: LiveData<BuzzType>
+        get() = _eventBuzz
+
+    // note. timer
     private val timer: CountDownTimer
     private var _remainingTime = MutableLiveData<Long>()
-    val remainingTime: LiveData<Long> get() = _remainingTime
+    val remainingTime: LiveData<Long>
+        get() = _remainingTime
 
     val remainingTimeString = Transformations.map(remainingTime) { time ->
         DateUtils.formatElapsedTime(time)
     }
 
-    // The current word
+    // note. The current word
     private var _word = MutableLiveData<String>()
-    val word: LiveData<String> get() = _word // note. LiveData Encapsulation
+    val word: LiveData<String>
+        get() = _word // note. LiveData Encapsulation
 
-    // The current score
+    // note. The current score
     private var _score = MutableLiveData<Int>()
-    val score: LiveData<Int> get() = _score // note. LiveData Encapsulation
+    val score: LiveData<Int>
+        get() = _score // note. LiveData Encapsulation
 
-    // Game finished event
+    // note. Game finished event
     private val _eventGameFinish = MutableLiveData<Boolean>()
-    val eventGameFinish: LiveData<Boolean> get() = _eventGameFinish
+    val eventGameFinish: LiveData<Boolean>
+        get() = _eventGameFinish
 
-    // The list of words - the front of the list is the next word to guess
+    // note. The list of words - the front of the list is the next word to guess
     private lateinit var wordList: MutableList<String>
 
     init {
@@ -56,10 +84,14 @@ class GameViewModel: ViewModel() {
         timer = object: CountDownTimer(COUNTDOWN_TIME, ONE_SECOND) {
             override fun onTick(milisecond: Long) {
                 _remainingTime.value = (milisecond / ONE_SECOND)
+                if (milisecond / ONE_SECOND <= COUNTDOWN_PANIC_SECONDS) {
+                    _eventBuzz.value = BuzzType.COUNTDOWN_PANIC
+                }
             }
 
             override fun onFinish() {
                 _remainingTime.value = DONE
+                _eventBuzz.value = BuzzType.GAME_OVER
                 _eventGameFinish.value = true
             }
         }
@@ -118,10 +150,15 @@ class GameViewModel: ViewModel() {
 
     fun onCorrect() {
         _score.value = (score.value)?.plus(1)
+        _eventBuzz.value = BuzzType.CORRECT
         nextWord()
     }
 
     fun onGameFinishComplete() {
         _eventGameFinish.value = false
+    }
+
+    fun onBuzzComplete() {
+        _eventBuzz.value = BuzzType.NO_BUZZ
     }
 }
